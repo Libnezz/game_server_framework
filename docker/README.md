@@ -20,13 +20,19 @@ docker compose exec dev bash
 cd /app/skynet && make linux
 ```
 
-## 冒烟测试（验证运行时可用）
+## 运行框架（使用我们自己的配置与代码）
 
 ```bash
-cd /app/skynet && timeout 8 ./skynet examples/config
+cd /app && bash scripts/launcher/run.sh
 ```
 
-看到 `Start service: snlua bootstrap` 等启动日志即说明环境正常。
+看到 `framework booted` 与 `ping service responded: pong` 即说明框架链路正常。
+
+Windows 下可直接执行：
+
+```powershell
+docker compose exec dev bash -lc "cd /app && bash scripts/launcher/run.sh"
+```
 
 ## 停止
 

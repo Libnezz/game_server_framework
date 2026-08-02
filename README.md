@@ -15,3 +15,12 @@
 | `third_party/` | 第三方依赖（源码/子模块/二进制，尽量不修改、单独升级） |
 
 Docker 开发环境见 [`docker/README.md`](docker/README.md)。
+
+## 快速启动
+
+```powershell
+docker compose up -d --build
+docker compose exec dev bash -lc "cd /app && bash scripts/launcher/run.sh"
+```
+
+看到 `framework booted` 与 `ping service responded: pong` 即说明框架链路正常。

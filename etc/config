@@ -1,0 +1,8 @@
+include "config.path"
+
+thread = 8
+harbor = 0          -- 单节点模式，暂不启用跨节点集群
+logger = nil        -- 日志输出到标准错误
+logpath = "."
+start = "main"      -- 框架启动入口服务
+bootstrap = "snlua bootstrap"
