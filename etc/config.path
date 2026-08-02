@@ -2,10 +2,10 @@
 root = "./"
 
 -- 服务搜索路径：skynet 自带服务优先，然后是框架服务、业务服务
-luaservice = root.."skynet/service/?.lua;"..root.."scripts/framework/?.lua;"..root.."scripts/game/?.lua;"..root.."scripts/framework/?/init.lua;"..root.."scripts/game/?/init.lua"
+luaservice = root.."skynet/service/?.lua;"..root.."scripts/framework/?.lua;"..root.."scripts/framework/services/?.lua;"..root.."scripts/game/?.lua;"..root.."scripts/game/modules/?.lua;"..root.."scripts/framework/?/init.lua;"..root.."scripts/game/?/init.lua"
 
--- Lua 模块搜索路径：框架工具集优先，然后是第三方库，最后是 skynet 自带库
-lua_path = root.."scripts/framework/?.lua;"..root.."scripts/framework/?/init.lua;"..root.."third_party/?.lua;"..root.."third_party/?/init.lua;"..root.."skynet/lualib/?.lua;"..root.."skynet/lualib/?/init.lua"
+-- Lua 模块搜索路径：框架工具库优先，然后是业务库、第三方库，最后是 skynet 自带库
+lua_path = root.."scripts/framework/?.lua;"..root.."scripts/framework/?/init.lua;"..root.."scripts/framework/utils/?.lua;"..root.."scripts/framework/utils/?/init.lua;"..root.."scripts/game/?.lua;"..root.."scripts/game/?/init.lua;"..root.."scripts/game/constants/?.lua;"..root.."scripts/game/managers/?.lua;"..root.."scripts/game/modules/?.lua;"..root.."third_party/?.lua;"..root.."third_party/?/init.lua;"..root.."third_party/lua-protobuf/?.lua;"..root.."skynet/lualib/?.lua;"..root.."skynet/lualib/?/init.lua"
 
 -- C 模块搜索路径
 lua_cpath = root.."skynet/luaclib/?.so"

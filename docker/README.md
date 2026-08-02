@@ -34,6 +34,14 @@ Windows 下可直接执行：
 docker compose exec dev bash -lc "cd /app && bash run.sh"
 ```
 
+## 编译 protobuf 支持库（首次或升级 lua-protobuf 后）
+
+```powershell
+docker compose exec dev bash -lc "cd /app/third_party/lua-protobuf && gcc -O2 -shared -fPIC -I /app/skynet/3rd/lua pb.c -o /app/skynet/luaclib/pb.so"
+```
+
+产物 `pb.so` 位于 `skynet/luaclib/`（已被 git 忽略，不提交）。
+
 ## 停止
 
 ```powershell

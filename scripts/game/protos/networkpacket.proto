@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package Game.Framework.Network;
+
+// 网络传输统一包装格式
+message NetworkPacket {
+  uint32 session_id = 1;           // 请求-响应匹配
+  string protocol_name = 2;        // 业务协议名称 "LoginRequest"
+  bytes payload = 3;               // 业务协议序列化数据
+  int64 timestamp = 4;             // 可选：时间戳
+  int32 error_code = 5;            // 可选：错误码
+  string error_msg = 6;            // 可选：错误信息
+}

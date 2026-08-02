@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option csharp_namespace = "Game.Modules.NetWorkModule";
+
+message TestRequest {
+  string message = 1;
+}
+
+message TestResponse {
+  string result = 1;
+}
