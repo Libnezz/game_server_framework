@@ -1,15 +1,33 @@
--- 框架启动编排入口：skynet 完成进程级启动后，由这里拉起框架与业务服务
+-- 框架启动编排入口：skynet 完成进程级启动后，按启动清单依序拉起服务
 local skynet = require "skynet"
+local startup = require "startup"
 
 skynet.start(function()
     skynet.error("framework booted")
 
-    -- 调试控制台（运行时工具，生产环境也保留，用配置控制监听地址/端口）
-    skynet.newservice("debug_console", 8000)
+    -- 按启动清单依序启动服务（newservice 会等待服务启动完成，天然保证先后）
+    local services = {}
+    for i, item in ipairs(startup) do
+        local handle = skynet.newservice(item.name, table.unpack(item.args or {}))
+        services[item.name] = handle
+        skynet.error(string.format("startup %d/%d: %s ok", i, #startup, item.name))
+    end
 
-    -- 拉起一个占位业务服务，并做一次服务间消息往返验证
-    -- （skynet.call 是同步请求：main 服务 -> echo 服务 -> 返回响应）
-    local echo = skynet.newservice("echo")
-    local resp = skynet.call(echo, "lua", "echo", "framework alive")
-    skynet.error(string.format("echo service responded: %s", tostring(resp)))
+    -- 自检：读取一张配置表，验证读表链路
+    local config = require "config"
+    local items = config.get("Item")
+    if items and items[1] then
+        skynet.error(string.format("self-check: Item[1] = %s (id %s)",
+            tostring(items[1].name), tostring(items[1].id)))
+    else
+        skynet.error("self-check failed: Item config not found")
+    end
+
+    -- 验证 configd 热更接口
+    local resp = skynet.call(services.configd, "lua", "reload")
+    skynet.error(string.format("config reload: %s", tostring(resp)))
+
+    -- 验证服务间消息往返
+    local msg = skynet.call(services.echo, "lua", "echo", "framework alive")
+    skynet.error(string.format("echo service responded: %s", tostring(msg)))
 end)

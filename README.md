@@ -23,3 +23,7 @@ docker compose exec dev bash -lc "cd /app && bash run.sh"
 ```
 
 看到 `framework booted` 与 `echo service responded: framework alive` 即说明框架链路正常。
+
+### 启动编排
+
+框架服务通过 [`scripts/framework/startup.lua`](scripts/framework/startup.lua) 清单按依赖顺序启动（支持性服务 → 基础通用服务 → 业务服务）；数值配置表放在 `datas/`，由 `configd` 服务加载进只读共享数据，支持热更。

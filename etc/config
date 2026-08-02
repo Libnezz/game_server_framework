@@ -6,3 +6,4 @@ logger = nil        -- 日志输出到标准错误
 logpath = "."
 start = "main"      -- 框架启动入口服务
 bootstrap = "snlua bootstrap"
+config_path = "datas/"  -- 数值配置表目录（configd 服务读取）
