@@ -23,15 +23,15 @@ cd /app/skynet && make linux
 ## 运行框架（使用我们自己的配置与代码）
 
 ```bash
-cd /app && bash scripts/launcher/run.sh
+cd /app && bash run.sh
 ```
 
-看到 `framework booted` 与 `ping service responded: pong` 即说明框架链路正常。
+看到 `framework booted` 与 `echo service responded: framework alive` 即说明框架链路正常。
 
 Windows 下可直接执行：
 
 ```powershell
-docker compose exec dev bash -lc "cd /app && bash scripts/launcher/run.sh"
+docker compose exec dev bash -lc "cd /app && bash run.sh"
 ```
 
 ## 停止
