@@ -12,3 +12,14 @@ config_path = "datas/"              -- 数值配置表目录（configservice 服
 proto_path = "scripts/game/protos/" -- 协议文件目录（protoservice 服务读取）
 ws_port = 8888                      -- WebSocket 接入端口（watchdog 读取）
 agent_service = "agent"             -- 每个连接创建的会话服务名（game 层实现）
+
+-- 数据库配置（host 用 docker compose 服务名，容器内可直接解析）
+redis_host = "redis"                -- Redis 地址
+redis_port = 6379
+redis_db = 0
+-- redis_password = ""              -- 需要密码时启用
+mysql_host = "mysql"                -- MySQL 地址
+mysql_port = 3306
+mysql_user = "game"                 -- 应用账号（native_password，见 docker/mysql/init.sql）
+mysql_password = "game"
+mysql_database = "game"

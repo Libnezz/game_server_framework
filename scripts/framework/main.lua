@@ -31,6 +31,28 @@ skynet.start(function()
     local protos = skynet.call(services.protoservice, "lua", "status")
     log.info("protoservice status: %s", table.concat(protos, ", "))
 
+    -- 验证 Redis 链路
+    local db = require "db"
+    local okr, rr = pcall(db.redis, "SET", "framework:boot", os.time())
+    if okr then
+        local v = db.redis("GET", "framework:boot")
+        log.info("redis self-check ok: framework:boot = %s", tostring(v))
+    else
+        log.error("redis self-check failed: %s", tostring(rr))
+    end
+
+    -- 验证 MySQL 链路（建表 + 插入 + 查询）
+    local okm, rm = pcall(function()
+        db.mysql_execute("CREATE TABLE IF NOT EXISTS framework_selfcheck (id INT AUTO_INCREMENT PRIMARY KEY, note VARCHAR(64), ts BIGINT)")
+        db.mysql_execute("INSERT INTO framework_selfcheck (note, ts) VALUES ('boot', " .. os.time() .. ")")
+        return db.mysql_query("SELECT note, ts FROM framework_selfcheck ORDER BY id DESC LIMIT 1")
+    end)
+    if okm and rm and rm[1] then
+        log.info("mysql self-check ok: %s", tostring(rm[1].note))
+    else
+        log.error("mysql self-check failed: %s", tostring(rm))
+    end
+
     -- 打开 WebSocket 监听（端口见 etc/config 的 ws_port）
     local addr, port = skynet.call(services.watchdog, "lua", "start")
     log.info("ws listening on %s:%s", tostring(addr), tostring(port))

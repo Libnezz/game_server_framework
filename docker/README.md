@@ -8,6 +8,17 @@
 docker compose up -d --build
 ```
 
+`docker compose up` 会同时启动依赖的 MySQL（`gsf-mysql`，root/root，应用账号 game/game，库 game）与 Redis（`gsf-redis`）；首次启动 MySQL 会自动执行 [`docker/mysql/init.sql`](docker/mysql/init.sql) 创建应用账号。
+
+## 数据持久化
+
+MySQL 与 Redis 的数据分别存放在命名卷 `mysql_data`、`redis_data` 中，容器重建不会丢失。
+
+- 日常停止/启动：`docker compose down` + `docker compose up -d` —— 数据保留。
+- **`docker compose down -v` 会删除命名卷，数据全部清空**，仅用于刻意重置（如重新执行 init.sql）。
+- 备份：Windows 上运行 `powershell -File scripts/tools/backup_db.ps1`，Linux 上运行 `bash scripts/tools/backup_db.sh`，导出到 `backups/` 目录。
+- 注意：`docker/mysql/init.sql` 只在数据目录为空（首次初始化）时执行；修改 init.sql 后需重置数据卷或手动执行 SQL。
+
 ## 进入容器
 
 ```powershell
