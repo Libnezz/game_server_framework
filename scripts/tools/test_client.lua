@@ -12,6 +12,7 @@ local protoc = require "protoc"
 local parser = protoc.new()
 parser:loadfile("scripts/game/protos/networkpacket.proto")
 parser:loadfile("scripts/game/protos/test.proto")
+parser:loadfile("scripts/game/protos/player.proto")
 protoc.reload()
 
 local host = arg[1] or "127.0.0.1"
@@ -99,29 +100,57 @@ local function read_frame()
     return opcode, payload
 end
 
--- 构造请求：NetworkPacket(TestRequest)
-local payload = pb.encode("TestRequest", { message = "hello from ws client" })
-local packet = pb.encode("Game.Framework.Network.NetworkPacket", {
-    session_id = 1,
-    protocol_name = "TestRequest",
-    payload = payload,
-    timestamp = os.time(),
-})
-io.write(string.format("send NetworkPacket(%d bytes)\n", #packet))
-io.flush()
-socket.send(fd, ws_frame(2, packet))
+local session_seq = 0
+-- protocol_name 为业务协议短名（路由用），proto_type 为 protobuf 完整类型名（编解码用）
+local function rpc_call(protocol_name, proto_type, payload_tbl, resp_type)
+    session_seq = session_seq + 1
+    local payload = pb.encode(proto_type, payload_tbl or {})
+    local packet = pb.encode("Game.Framework.Network.NetworkPacket", {
+        session_id = session_seq,
+        protocol_name = protocol_name,
+        payload = payload,
+        timestamp = os.time(),
+    })
+    io.write(string.format("send %s(%d bytes)\n", protocol_name, #packet))
+    io.flush()
+    socket.send(fd, ws_frame(2, packet))
 
--- 读取并解析响应
-local op, resp = read_frame()
-io.write(string.format("recv frame opcode=%d size=%d\n", op, #resp))
-local pkt = pb.decode("Game.Framework.Network.NetworkPacket", resp)
-io.write(string.format("session=%s protocol=%s error_code=%s\n",
-    tostring(pkt.session_id), tostring(pkt.protocol_name), tostring(pkt.error_code)))
-if pkt.error_code == 0 and #pkt.payload > 0 then
-    local r = pb.decode("TestResponse", pkt.payload)
-    io.write("TestResponse.result = ", r.result, "\n")
-else
-    io.write("error_msg = ", pkt.error_msg, "\n")
+    local op, resp = read_frame()
+    local pkt = pb.decode("Game.Framework.Network.NetworkPacket", resp)
+    io.write(string.format("recv session=%s protocol=%s error_code=%s\n",
+        tostring(pkt.session_id), tostring(pkt.protocol_name), tostring(pkt.error_code)))
+    if pkt.error_code ~= 0 then
+        error("server error: " .. pkt.error_msg)
+    end
+    return pb.decode(resp_type, pkt.payload)
 end
+
+-- 第一段会话：登录 → 查信息 → 加金币
+local P = "Game.Framework.Network."
+local login = rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "10001" }, P .. "LoginResponse")
+io.write(string.format("login ok: player=%s code=%s\n", login.player_id, tostring(login.code)))
+local info = rpc_call("GetPlayerInfo", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
+io.write(string.format("player info: coins=%s\n", tostring(info.coins)))
+local add = rpc_call("AddCoins", P .. "AddCoinsRequest", { amount = 50 }, P .. "AddCoinsResponse")
+io.write(string.format("add coins ok: now %s\n", tostring(add.coins)))
+
+socket.close(fd)
+io.write("--- reconnect ---\n")
+
+-- 第二段会话：重连验证玩家数据持久化（playermgr 复用同一 player 实体）
+local fd = assert(socket.connect(host, port))
+socket.send(fd, handshake)
+header = ""
+while not header:find("\r\n\r\n", 1, true) do
+    local r = socket.recv(fd)
+    if r == "" then
+        error("server closed during handshake")
+    end
+    header = header .. (r or "")
+end
+
+local login2 = rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "10001" }, P .. "LoginResponse")
+local info2 = rpc_call("GetPlayerInfo", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
+io.write(string.format("reconnect player info: coins=%s\n", tostring(info2.coins)))
 
 socket.close(fd)

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package Game.Framework.Network;
+
+// 登录
+message LoginRequest {
+  string player_id = 1;
+}
+message LoginResponse {
+  int32 code = 1;
+  string player_id = 2;
+}
+
+// 玩家信息
+message PlayerInfoRequest {}
+message PlayerInfoResponse {
+  string player_id = 1;
+  int64 coins = 2;
+}
+
+// 金币（演示玩家数据持久化）
+message AddCoinsRequest {
+  int64 amount = 1;
+}
+message AddCoinsResponse {
+  int64 coins = 1;
+}

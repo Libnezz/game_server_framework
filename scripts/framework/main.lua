@@ -53,6 +53,10 @@ skynet.start(function()
         log.error("mysql self-check failed: %s", tostring(rm))
     end
 
+    -- 验证 playermgr
+    local online = skynet.call(services.playermgr, "lua", "online")
+    log.info("playermgr online: %d", online)
+
     -- 打开 WebSocket 监听（端口见 etc/config 的 ws_port）
     local addr, port = skynet.call(services.watchdog, "lua", "start")
     log.info("ws listening on %s:%s", tostring(addr), tostring(port))

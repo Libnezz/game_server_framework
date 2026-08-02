@@ -8,6 +8,7 @@ return {
     { name = "redisservice" },                   -- 基础通用服务：Redis 代理
     { name = "mysqlservice" },                   -- 基础通用服务：MySQL 代理
     { name = "router" },                         -- 基础通用服务：协议路由器（协议名 → 业务服务）
+    { name = "playermgr" },                      -- 业务服务：玩家管理器（处理登录，管理玩家实体）
     { name = "watchdog" },                       -- 基础通用服务：WebSocket 连接管理
     { name = "testmodule" },                     -- 业务服务：示例模块（注册 TestRequest）
     { name = "echo" },                           -- 占位业务服务（验证链路，后续替换为真实业务）

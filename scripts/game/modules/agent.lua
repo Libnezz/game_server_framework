@@ -8,6 +8,7 @@ local log = require "log"
 
 local WATCHDOG
 local ws_id
+local player_handle -- 登录后绑定玩家实体
 
 local NETWORK_PACKET = "Game.Framework.Network.NetworkPacket"
 
@@ -28,7 +29,19 @@ local handle = {
             local packet = proto.decode(NETWORK_PACKET, data)
             log.info("agent recv: protocol=%s session=%s",
                 tostring(packet.protocol_name), tostring(packet.session_id))
-            local resp_bytes = rpc.dispatch(packet.protocol_name, packet.payload)
+            local resp_bytes
+            if player_handle then
+                -- 已登录：业务协议直接转发给玩家实体
+                resp_bytes = skynet.call(player_handle, "lua", packet.protocol_name, packet.payload)
+            else
+                -- 未登录：走 router 分发（登录协议），并绑定返回的玩家句柄
+                local handle
+                resp_bytes, handle = rpc.dispatch(packet.protocol_name, packet.payload)
+                if handle then
+                    player_handle = handle
+                    log.info("agent bound to player: %s", skynet.address(player_handle))
+                end
+            end
             websocket.write(id, make_packet(packet.session_id, packet.protocol_name, resp_bytes))
         end)
         if not ok then
