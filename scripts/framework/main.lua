@@ -24,12 +24,12 @@ skynet.start(function()
     end
 
     -- 验证 configd 热更接口
-    local resp = skynet.call(services.configd, "lua", "reload")
+    local resp = skynet.call(services.configservice, "lua", "reload")
     log.info("config reload: %s", tostring(resp))
 
-    -- 验证 protoloader 状态接口
-    local protos = skynet.call(services.protoloader, "lua", "status")
-    log.info("protoloader status: %s", table.concat(protos, ", "))
+    -- 验证 protoservice 状态接口
+    local protos = skynet.call(services.protoservice, "lua", "status")
+    log.info("protoservice status: %s", table.concat(protos, ", "))
 
     -- 验证服务间消息往返
     local msg = skynet.call(services.echo, "lua", "echo", "framework alive")

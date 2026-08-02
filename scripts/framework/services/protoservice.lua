@@ -7,10 +7,10 @@ local proto = require "proto"
 skynet.start(function()
     local ok, err = pcall(proto.load_all)
     if not ok then
-        skynet.error(string.format("protoloader: load failed: %s", tostring(err)))
+        skynet.error(string.format("protoservice: load failed: %s", tostring(err)))
         skynet.abort()
     end
-    skynet.error("protoloader: all protos loaded")
+    skynet.error("protoservice: all protos loaded")
 
     -- 自检：TestRequest encode/decode 往返
     local ok2, msg = pcall(function()
@@ -19,16 +19,16 @@ skynet.start(function()
         return obj.message
     end)
     if ok2 then
-        skynet.error(string.format("protoloader: self-check ok, roundtrip = %q", tostring(msg)))
+        skynet.error(string.format("protoservice: self-check ok, roundtrip = %q", tostring(msg)))
     else
-        skynet.error(string.format("protoloader: self-check failed: %s", tostring(msg)))
+        skynet.error(string.format("protoservice: self-check failed: %s", tostring(msg)))
     end
 
     skynet.dispatch("lua", function(session, source, cmd)
         if cmd == "status" then
             skynet.ret(skynet.pack(proto.files()))
         else
-            skynet.error(string.format("protoloader: unknown command %q", tostring(cmd)))
+            skynet.error(string.format("protoservice: unknown command %q", tostring(cmd)))
         end
     end)
 end)

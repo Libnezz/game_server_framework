@@ -48,7 +48,7 @@ skynet.start(function()
         elseif cmd == "status" then
             skynet.ret(skynet.pack(CONFIG_FILES))
         else
-            skynet.error(string.format("configd: unknown command %q", tostring(cmd)))
+            skynet.error(string.format("configservice: unknown command %q", tostring(cmd)))
         end
     end)
 end)

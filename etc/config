@@ -8,5 +8,5 @@ log_level = "info"      -- 日志级别：debug / info / warn / error
 logpath = "."
 start = "main"      -- 框架启动入口服务
 bootstrap = "snlua bootstrap"
-config_path = "datas/"              -- 数值配置表目录（configd 服务读取）
-proto_path = "scripts/game/protos/" -- 协议文件目录（protoloader 读取）
+config_path = "datas/"              -- 数值配置表目录（configservice 服务读取）
+proto_path = "scripts/game/protos/" -- 协议文件目录（protoservice 服务读取）
