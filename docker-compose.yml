@@ -1,0 +1,17 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: gsf-dev:latest
+    container_name: gsf-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    command: ["sleep", "infinity"]
+    # 端口示例：等 gate/登录服务就绪后取消注释
+    # ports:
+    #   - "8000:8000"   # 客户端接入
+    #   - "2013:2013"   # skynet master (standalone)
