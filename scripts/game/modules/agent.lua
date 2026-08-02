@@ -1,44 +1,61 @@
--- 玩家会话服务（agent）：一个连接一个实例，承载该玩家的网络会话
--- 第一阶段：回显收到的数据，验证 gate → watchdog → agent → 客户端 全链路
--- 后续：解析 NetworkPacket（protobuf），按 protocol_name 分发到业务模块
+-- 玩家会话服务（agent）：一个 WebSocket 连接一个实例
+-- 流程：接收 NetworkPacket → 按 protocol_name 经 router 分发到业务模块 → 回包
 local skynet = require "skynet"
-local socket = require "skynet.socket"
+local websocket = require "http.websocket"
+local proto = require "proto"
+local rpc = require "rpc"
 local log = require "log"
 
 local WATCHDOG
-local gate
-local client_fd
+local ws_id
+
+local NETWORK_PACKET = "Game.Framework.Network.NetworkPacket"
+
+local function make_packet(session_id, protocol_name, payload, err)
+    return proto.encode(NETWORK_PACKET, {
+        session_id = session_id or 0,
+        protocol_name = protocol_name or "",
+        payload = payload or "",
+        timestamp = os.time(),
+        error_code = err and 1 or 0,
+        error_msg = err or "",
+    })
+end
+
+local handle = {
+    message = function(id, data)
+        local ok, err = pcall(function()
+            local packet = proto.decode(NETWORK_PACKET, data)
+            log.info("agent recv: protocol=%s session=%s",
+                tostring(packet.protocol_name), tostring(packet.session_id))
+            local resp_bytes = rpc.dispatch(packet.protocol_name, packet.payload)
+            websocket.write(id, make_packet(packet.session_id, packet.protocol_name, resp_bytes))
+        end)
+        if not ok then
+            log.error("agent dispatch failed: %s", tostring(err))
+            websocket.write(id, make_packet(0, "", nil, tostring(err)))
+        end
+    end,
+    close = function(id)
+        log.info("ws closed: fd=%d", id)
+        skynet.exit()
+    end,
+    error = function(id, err)
+        log.info("ws error: fd=%d (%s)", id, tostring(err))
+    end,
+}
 
 local CMD = {}
 
 function CMD.start(conf)
-    gate = conf.gate
-    client_fd = conf.client
     WATCHDOG = conf.watchdog
-    -- 让 gate 把该连接的后续数据包直接转发给本服务
-    skynet.call(gate, "lua", "forward", client_fd)
-    log.info("agent started: fd=%d addr=%s", client_fd, skynet.address(skynet.self()))
+    ws_id = conf.fd
+    log.info("agent started: fd=%d addr=%s", ws_id, tostring(conf.addr))
+    skynet.fork(function()
+        websocket.accept(ws_id, handle, "ws", conf.addr)
+        skynet.exit()
+    end)
 end
-
-function CMD.disconnect()
-    log.info("agent disconnected: fd=%d", client_fd)
-    skynet.exit()
-end
-
--- 客户端数据包（gate 转发，wire 协议：2 字节大端长度 + 负载）
-skynet.register_protocol {
-    name = "client",
-    id = skynet.PTYPE_CLIENT,
-    unpack = skynet.tostring,
-    dispatch = function(fd, _, msg)
-        assert(fd == client_fd)
-        skynet.ignoreret() -- 客户端消息的 session 是 fd，不需要回响应
-        log.info("agent recv: %s", tostring(msg))
-        -- 回显（第一阶段验证用；后续改为解析协议并路由业务）
-        local package = string.pack(">s2", msg)
-        socket.write(client_fd, package)
-    end,
-}
 
 skynet.start(function()
     skynet.dispatch("lua", function(session, source, cmd, ...)

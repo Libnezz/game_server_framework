@@ -26,6 +26,6 @@ docker compose exec dev bash -lc "cd /app && bash run.sh"
 
 ### 启动编排
 
-框架服务通过 [`scripts/framework/startup.lua`](scripts/framework/startup.lua) 清单按依赖顺序启动（支持性服务 → 基础通用服务 → 业务服务）；数值配置表放在 `datas/`，由 `configservice` 服务加载进只读共享数据，支持热更。网络链路为 `gate`（连接/拆包）→ `watchdog`（连接管理，框架层）→ `agent`（每连接会话，game 层），测试客户端见 [`scripts/tools/run_test_client.sh`](scripts/tools/run_test_client.sh)（先启动服务端再运行）。
+框架服务通过 [`scripts/framework/startup.lua`](scripts/framework/startup.lua) 清单按依赖顺序启动（支持性服务 → 基础通用服务 → 业务服务）；数值配置表放在 `datas/`，由 `configservice` 服务加载进只读共享数据，支持热更。网络链路为 `watchdog`（WebSocket 监听，框架层）→ `agent`（每连接会话，game 层）→ `router`（协议路由）→ 业务模块（RPC 分发）；消息统一用 `NetworkPacket`（protobuf）包装，测试客户端见 [`scripts/tools/run_test_client.sh`](scripts/tools/run_test_client.sh)（先启动服务端再运行）。
 
 协议文件（protobuf）放在 `scripts/game/protos/`，由 `protoservice` 服务统一加载校验（lua-protobuf 解析，schema 按服务 VM 独立持有）；日志由 `logservice` 统一输出时间戳，业务侧用 `log` 工具（级别过滤）。
