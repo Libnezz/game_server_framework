@@ -10,3 +10,6 @@ start = "main"      -- 框架启动入口服务
 bootstrap = "snlua bootstrap"
 config_path = "datas/"              -- 数值配置表目录（configservice 服务读取）
 proto_path = "scripts/game/protos/" -- 协议文件目录（protoservice 服务读取）
+gate_port = 8888                    -- 客户端接入端口（watchdog 读取）
+gate_maxclient = 1024               -- 最大连接数
+agent_service = "agent"             -- 每个连接创建的会话服务名（game 层实现）

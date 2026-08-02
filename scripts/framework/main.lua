@@ -31,6 +31,10 @@ skynet.start(function()
     local protos = skynet.call(services.protoservice, "lua", "status")
     log.info("protoservice status: %s", table.concat(protos, ", "))
 
+    -- 打开网络监听（gate 端口见 etc/config 的 gate_port）
+    local addr, port = skynet.call(services.watchdog, "lua", "start")
+    log.info("gate listening on %s:%s", tostring(addr), tostring(port))
+
     -- 验证服务间消息往返
     local msg = skynet.call(services.echo, "lua", "echo", "framework alive")
     log.info("echo service responded: %s", tostring(msg))
