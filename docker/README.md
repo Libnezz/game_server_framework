@@ -62,4 +62,4 @@ docker compose down
 ## 说明
 
 - `docker/Dockerfile` 是开发镜像（带 gcc/make/autoconf），部署镜像后续单独做。
-- 端口映射暂未开启，等 gate/登录服务就绪后再在 `docker-compose.yml` 中放开。
+- WebSocket 服务已实现，配置端口为 `etc/config` 中的 8888，但 `docker-compose.yml` 的 dev 服务尚未发布该端口。因此现有测试客户端面向容器内部运行；Windows Unity 客户端联调前还需配置宿主到容器的连接入口。Compose 内旧的 8000 端口注释不代表当前 WebSocket 端口。
