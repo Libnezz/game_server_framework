@@ -22,25 +22,25 @@ local CMD = {}
 
 -- SELECT 查询，返回行数组（每行为字段名 -> 值的表）
 function CMD.query(sql)
-    local res, err = db:query(sql)
-    if not res then
-        error(tostring(err))
+    local res = db:query(sql)
+    if not res or res.badresult then
+        error("mysql query failed (errno=" .. tostring(res and res.errno) .. ")")
     end
     return res
 end
 
 -- 写操作（INSERT/UPDATE/DELETE/DDL），返回 affected_rows/insert_id 等
 function CMD.execute(sql)
-    local res, err = db:query(sql)
-    if not res then
-        error(tostring(err))
+    local res = db:query(sql)
+    if not res or res.badresult then
+        error("mysql execute failed (errno=" .. tostring(res and res.errno) .. ")")
     end
     return res
 end
 
 -- 字符串转义（拼接 SQL 时使用）
 function CMD.quote(str)
-    return db:quote_sql_str(str)
+    return mysql.quote_sql_str(str)
 end
 
 skynet.start(function()

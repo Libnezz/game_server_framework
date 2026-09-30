@@ -7,41 +7,36 @@ local log = require "log"
 
 local P = "Game.Framework.Network."
 local player_id = assert(...)
-local coins = 0
-
-local function redis_key(k)
-    return "player:" .. player_id .. ":" .. k
-end
+local profile_module = require "player_profile_repository"
+local store = require("mysql_document_store").new({
+    query = db.mysql_query, execute = db.mysql_execute, quote = db.mysql_quote,
+}, "player_profiles")
+local profiles = profile_module.new(store, function(id)
+    -- Only for first server-side creation; never read or import the client player_data archive.
+    local legacy_coins = db.redis("GET", "player:" .. id .. ":coins")
+    return profile_module.seed(id, tonumber(legacy_coins or "0"))
+end)
 
 local HANDLERS = {
-    -- Versioned read-only seed. Only coins currently have historical Redis persistence.
-    -- Product profile storage and mutations are a later slice.
     PlayerProfileRequest = function()
-        return proto.encode(P .. "PlayerProfileResponse", {
-            player_id = player_id, schema_version = 1, revision = 1,
-            nickname = "Test Traveler", level = 3, exp = 25, coins = coins,
-            total_login_count = 0, last_login_unix_seconds = 0, items = {},
-        })
+        return proto.encode(P .. "PlayerProfileResponse", profiles.read(player_id))
     end,
     -- 玩家业务模块入口（后续按 managers 组织）
     PlayerInfoRequest = function()
-        return proto.encode(P .. "PlayerInfoResponse", { player_id = player_id, coins = coins })
+        return proto.encode(P .. "PlayerInfoResponse", { player_id = player_id, coins = profiles.read(player_id).coins })
     end,
     AddCoinsRequest = function(payload)
         error("client-authored economy changes are disabled")
     end,
     logout = function()
-        log.info("player %s logout, save coins=%d", player_id, coins)
-        db.redis("SET", redis_key("coins"), coins)
+        log.info("player %s logout; read-only profile already persisted", player_id)
         skynet.exit()
     end,
 }
 
 skynet.start(function()
-    -- 加载玩家数据（演示：金币存 Redis）
-    local v = db.redis("GET", redis_key("coins"))
-    coins = tonumber(v or "0")
-    log.info("player %s loaded, coins=%d", player_id, coins)
+    local profile = profiles.load_or_create(player_id)
+    log.info("player %s profile loaded, schema=%d revision=%d", player_id, profile.schema_version, profile.revision)
 
     skynet.dispatch("lua", function(session, source, protocol_name, payload)
         local f = HANDLERS[protocol_name]

@@ -1,5 +1,7 @@
 # WebSocket NetworkPacket 约定
 
+2026-09-30 后续状态：完整 PlayerProfileResponse 已由 MySQL `player_profiles` 文档持久化并校验读取；开发种子仅在首次建档使用。新 Skynet 进程和 MySQL 容器重启恢复均通过。详见 [player-profile-storage.md](player-profile-storage.md) 和产品 `Docs/ServerProfilePersistence.md`；下文关于只持久化金币的描述保留为最初切片的历史范围。
+
 客户端共享框架和 Skynet 服务端按 `scripts/game/protos/networkpacket.proto` 的字段定义共用传输外壳；产品侧 `Account.cs` 由服务端 `account.proto` 生成，csharp_namespace 不改变 wire 格式。旧 player.proto 保留用于拒绝旧演示操作及兼容只读金币查询。本文约定业务命名与连接控制语义。
 
 ## 消息约定

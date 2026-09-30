@@ -18,4 +18,8 @@ function M.mysql_execute(sql)
     return skynet.call(".mysqlservice", "lua", "execute", sql)
 end
 
+function M.mysql_quote(value)
+    return skynet.call(".mysqlservice", "lua", "quote", value)
+end
+
 return M
