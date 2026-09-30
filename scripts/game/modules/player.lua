@@ -15,10 +15,10 @@ end
 
 local HANDLERS = {
     -- 玩家业务模块入口（后续按 managers 组织）
-    GetPlayerInfo = function()
+    PlayerInfoRequest = function()
         return proto.encode(P .. "PlayerInfoResponse", { player_id = player_id, coins = coins })
     end,
-    AddCoins = function(payload)
+    AddCoinsRequest = function(payload)
         local req = proto.decode(P .. "AddCoinsRequest", payload)
         coins = coins + (req.amount or 0)
         db.redis("SET", redis_key("coins"), coins) -- 写穿 Redis，演示持久化

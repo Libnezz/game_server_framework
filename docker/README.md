@@ -62,4 +62,4 @@ docker compose down
 ## 说明
 
 - `docker/Dockerfile` 是开发镜像（带 gcc/make/autoconf），部署镜像后续单独做。
-- WebSocket 服务已实现，配置端口为 `etc/config` 中的 8888，但 `docker-compose.yml` 的 dev 服务尚未发布该端口。因此现有测试客户端面向容器内部运行；Windows Unity 客户端联调前还需配置宿主到容器的连接入口。Compose 内旧的 8000 端口注释不代表当前 WebSocket 端口。
+- WebSocket 服务配置端口为 `etc/config` 中的 8888。dev 容器将其发布在本机回环地址，宿主 Unity 可连接 `ws://127.0.0.1:8888`，局域网外部无法通过此映射接入。旧的 8000 注释指 debug console，不是 WebSocket 端口。

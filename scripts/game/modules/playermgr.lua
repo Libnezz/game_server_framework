@@ -44,6 +44,7 @@ end
 
 skynet.start(function()
     rpc.register("LoginRequest")
+    rpc.register("PlayerInfoRequest", "AddCoinsRequest")
     log.info("playermgr started")
 
     skynet.dispatch("lua", function(session, source, cmd, ...)

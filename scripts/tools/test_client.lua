@@ -100,6 +100,19 @@ local function read_frame()
     return opcode, payload
 end
 
+local function send_heartbeat()
+    local packet = pb.encode("Game.Framework.Network.NetworkPacket", {
+        session_id = 0, protocol_name = "Heartbeat", timestamp = os.time(),
+    })
+    socket.send(fd, ws_frame(2, packet))
+    local opcode, bytes = read_frame()
+    assert(opcode == 2, "heartbeat response must be a binary frame")
+    local reply = pb.decode("Game.Framework.Network.NetworkPacket", bytes)
+    assert(reply.session_id == 0 and reply.protocol_name == "Heartbeat" and reply.error_code == 0,
+        "heartbeat response did not match the NetworkPacket contract")
+    io.write("heartbeat envelope ok\n")
+end
+
 local session_seq = 0
 -- protocol_name 为业务协议短名（路由用），proto_type 为 protobuf 完整类型名（编解码用）
 local function rpc_call(protocol_name, proto_type, payload_tbl, resp_type)
@@ -120,25 +133,51 @@ local function rpc_call(protocol_name, proto_type, payload_tbl, resp_type)
     io.write(string.format("recv session=%s protocol=%s error_code=%s\n",
         tostring(pkt.session_id), tostring(pkt.protocol_name), tostring(pkt.error_code)))
     if pkt.error_code ~= 0 then
-        error("server error: " .. pkt.error_msg)
+        error(string.format("server error (session=%s code=%s): %s",
+            tostring(pkt.session_id), tostring(pkt.error_code), pkt.error_msg))
     end
+    assert(pkt.session_id == session_seq, "response session_id does not match request")
+    assert(pkt.protocol_name == protocol_name, "response protocol_name does not match request")
     return pb.decode(resp_type, pkt.payload)
 end
 
--- 第一段会话：登录 → 查信息 → 加金币
+-- 第一段会话：先制造可恢复的路由错误,确认错误回包关联原请求。
 local P = "Game.Framework.Network."
+local error_ok, error_message = pcall(function()
+    rpc_call("UnknownRequest", P .. "LoginRequest", {}, P .. "LoginResponse")
+end)
+assert(not error_ok and error_message:find("session=1", 1, true),
+    "unknown protocol must return an error correlated to its request session")
+io.write("correlated protocol error ok\n")
+
+-- 登录 → 查询玩家数据 → 增加金币
 local login = rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "10001" }, P .. "LoginResponse")
 io.write(string.format("login ok: player=%s code=%s\n", login.player_id, tostring(login.code)))
-local info = rpc_call("GetPlayerInfo", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
+local info = rpc_call("PlayerInfoRequest", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
 io.write(string.format("player info: coins=%s\n", tostring(info.coins)))
-local add = rpc_call("AddCoins", P .. "AddCoinsRequest", { amount = 50 }, P .. "AddCoinsResponse")
+
+-- 可选的独立重启检查:本模式只登录和查询,不修改数据。
+if arg[3] == "verify" then
+    local expected = assert(tonumber(arg[4]), "verify mode requires expected coins as argument 4")
+    assert(info.coins == expected, string.format("after process restart expected %d coins, got %d", expected, info.coins))
+    send_heartbeat()
+    socket.close(fd)
+    io.write("restart persistence ok\n")
+    return
+end
+
+local add = rpc_call("AddCoinsRequest", P .. "AddCoinsRequest", { amount = 50 }, P .. "AddCoinsResponse")
 io.write(string.format("add coins ok: now %s\n", tostring(add.coins)))
+local expected_coins = add.coins
+
+send_heartbeat()
 
 socket.close(fd)
 io.write("--- reconnect ---\n")
 
 -- 第二段会话：重连验证玩家数据持久化（playermgr 复用同一 player 实体）
-local fd = assert(socket.connect(host, port))
+fd = assert(socket.connect(host, port))
+last = "" -- 新 TCP 连接必须丢弃上一会话的残留帧。
 socket.send(fd, handshake)
 header = ""
 while not header:find("\r\n\r\n", 1, true) do
@@ -149,8 +188,12 @@ while not header:find("\r\n\r\n", 1, true) do
     header = header .. (r or "")
 end
 
+session_seq = 0
+send_heartbeat()
 local login2 = rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "10001" }, P .. "LoginResponse")
-local info2 = rpc_call("GetPlayerInfo", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
-io.write(string.format("reconnect player info: coins=%s\n", tostring(info2.coins)))
+assert(login2.player_id == "10001" and login2.code == 0, "reconnect login response is invalid")
+local info2 = rpc_call("PlayerInfoRequest", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
+assert(info2.coins == expected_coins, "player state changed after reconnect")
+io.write(string.format("reconnect player info: coins=%s (persisted)\n", tostring(info2.coins)))
 
 socket.close(fd)

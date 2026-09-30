@@ -25,10 +25,21 @@ end
 
 local handle = {
     message = function(id, data)
+        local request_session_id = 0
+        local request_protocol_name = ""
         local ok, err = pcall(function()
             local packet = proto.decode(NETWORK_PACKET, data)
+            request_session_id = packet.session_id or 0
+            request_protocol_name = packet.protocol_name or ""
             log.info("agent recv: protocol=%s session=%s",
                 tostring(packet.protocol_name), tostring(packet.session_id))
+
+            -- 心跳同样是 NetworkPacket,session_id=0;不进入业务路由和玩家服务。
+            if packet.session_id == 0 and packet.protocol_name == "Heartbeat" then
+                websocket.write(id, make_packet(0, "Heartbeat"), "binary")
+                return
+            end
+
             local resp_bytes
             if player_handle then
                 -- 已登录：业务协议直接转发给玩家实体
@@ -42,11 +53,12 @@ local handle = {
                     log.info("agent bound to player: %s", skynet.address(player_handle))
                 end
             end
-            websocket.write(id, make_packet(packet.session_id, packet.protocol_name, resp_bytes))
+            websocket.write(id, make_packet(packet.session_id, packet.protocol_name, resp_bytes), "binary")
         end)
         if not ok then
             log.error("agent dispatch failed: %s", tostring(err))
-            websocket.write(id, make_packet(0, "", nil, tostring(err)))
+            -- 错误也要带回请求的会话号,让客户端立刻结束对应等待。
+            websocket.write(id, make_packet(request_session_id, request_protocol_name, nil, tostring(err)), "binary")
         end
     end,
     close = function(id)
