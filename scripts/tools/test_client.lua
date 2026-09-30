@@ -2,7 +2,7 @@
 -- 用法：cd /app && bash scripts/tools/run_test_client.sh
 io.stdout:setvbuf("line")
 package.cpath = "skynet/luaclib/?.so"
-package.path = "skynet/lualib/?.lua;third_party/lua-protobuf/?.lua"
+package.path = "skynet/lualib/?.lua;third_party/?.lua;third_party/lua-protobuf/?.lua"
 
 local socket = require "client.socket"
 local pb = require "pb"
@@ -13,6 +13,7 @@ local parser = protoc.new()
 parser:loadfile("scripts/game/protos/networkpacket.proto")
 parser:loadfile("scripts/game/protos/test.proto")
 parser:loadfile("scripts/game/protos/player.proto")
+parser:loadfile("scripts/game/protos/account.proto")
 protoc.reload()
 
 local host = arg[1] or "127.0.0.1"
@@ -130,6 +131,9 @@ local function rpc_call(protocol_name, proto_type, payload_tbl, resp_type)
 
     local op, resp = read_frame()
     local pkt = pb.decode("Game.Framework.Network.NetworkPacket", resp)
+    assert(op == 2, "response must be binary")
+    assert(pkt.session_id == session_seq, "response session_id does not match request")
+    assert(pkt.protocol_name == protocol_name, "response protocol_name does not match request")
     io.write(string.format("recv session=%s protocol=%s error_code=%s\n",
         tostring(pkt.session_id), tostring(pkt.protocol_name), tostring(pkt.error_code)))
     if pkt.error_code ~= 0 then
@@ -150,11 +154,32 @@ assert(not error_ok and error_message:find("session=1", 1, true),
     "unknown protocol must return an error correlated to its request session")
 io.write("correlated protocol error ok\n")
 
--- 登录 → 查询玩家数据 → 增加金币
-local login = rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "10001" }, P .. "LoginResponse")
-io.write(string.format("login ok: player=%s code=%s\n", login.player_id, tostring(login.code)))
-local info = rpc_call("PlayerInfoRequest", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
-io.write(string.format("player info: coins=%s\n", tostring(info.coins)))
+local file = assert(io.open("/run/gsf-development-accounts.json", "rb"), "local account file missing")
+local config = require("json").decode(file:read("*a"))
+file:close()
+local account, other = assert(config.accounts[1]), assert(config.accounts[2])
+local function authenticate(value, token)
+    return rpc_call("AuthenticateRequest", P .. "AuthenticateRequest",
+        { account_id = value.account_id, development_token = token or value.token }, P .. "AuthenticateResponse")
+end
+local function profile()
+    return rpc_call("PlayerProfileRequest", P .. "PlayerProfileRequest", {}, P .. "PlayerProfileResponse")
+end
+local function rejected(action)
+    assert(not pcall(action), "operation must be rejected")
+end
+rejected(profile)
+rejected(function() rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "99999" }, P .. "LoginResponse") end)
+rejected(function() authenticate(account, "invalid-token") end)
+rejected(profile)
+local login = authenticate(account)
+assert(login.player_id == account.player_id and login.account_id == account.account_id)
+local info = profile()
+assert(info.player_id == login.player_id and info.schema_version == 1 and info.revision == 1 and info.level == 3)
+rejected(function() rpc_call("AddCoinsRequest", P .. "AddCoinsRequest", { amount = 50 }, P .. "AddCoinsResponse") end)
+rejected(function() rpc_call("logout", P .. "LoginRequest", {}, P .. "LoginResponse") end)
+assert(profile().coins == info.coins, "rejected economy operation changed balance")
+io.write("authenticated server identity and versioned read-only profile ok\n")
 
 -- 可选的独立重启检查:本模式只登录和查询,不修改数据。
 if arg[3] == "verify" then
@@ -166,9 +191,14 @@ if arg[3] == "verify" then
     return
 end
 
-local add = rpc_call("AddCoinsRequest", P .. "AddCoinsRequest", { amount = 50 }, P .. "AddCoinsResponse")
-io.write(string.format("add coins ok: now %s\n", tostring(add.coins)))
-local expected_coins = add.coins
+local expected_coins = info.coins
+-- Failed reauthentication must clear the previous connection identity.
+rejected(function() authenticate(other, "invalid-token") end)
+rejected(profile)
+local login_other = authenticate(other)
+assert(login_other.player_id == other.player_id and profile().player_id == other.player_id)
+authenticate(account)
+assert(profile().player_id == account.player_id)
 
 send_heartbeat()
 
@@ -190,10 +220,12 @@ end
 
 session_seq = 0
 send_heartbeat()
-local login2 = rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "10001" }, P .. "LoginResponse")
-assert(login2.player_id == "10001" and login2.code == 0, "reconnect login response is invalid")
-local info2 = rpc_call("PlayerInfoRequest", P .. "PlayerInfoRequest", nil, P .. "PlayerInfoResponse")
+rejected(profile)
+local login2 = authenticate(account)
+assert(login2.player_id == account.player_id, "reconnect identity is invalid")
+local info2 = profile()
 assert(info2.coins == expected_coins, "player state changed after reconnect")
 io.write(string.format("reconnect player info: coins=%s (persisted)\n", tostring(info2.coins)))
 
 socket.close(fd)
+io.write("read-only authentication smoke passed\n")

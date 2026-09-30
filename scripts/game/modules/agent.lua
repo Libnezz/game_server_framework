@@ -40,25 +40,32 @@ local handle = {
                 return
             end
 
+            assert(request_session_id > 0, "business request session must be positive")
+            if request_protocol_name == "LoginRequest" or request_protocol_name == "AddCoinsRequest" then
+                error("legacy development operation disabled")
+            end
+
             local resp_bytes
-            if player_handle then
+            if packet.protocol_name == "AuthenticateRequest" then
+                -- Clear old binding before every authentication attempt. A failed switch cannot reuse it.
+                player_handle = nil
+                local handle
+                resp_bytes, handle = rpc.dispatch(packet.protocol_name, packet.payload)
+                assert(handle, "authentication failed")
+                player_handle = handle
+            elseif player_handle and (request_protocol_name == "PlayerProfileRequest" or request_protocol_name == "PlayerInfoRequest") then
                 -- 已登录：业务协议直接转发给玩家实体
                 resp_bytes = skynet.call(player_handle, "lua", packet.protocol_name, packet.payload)
             else
-                -- 未登录：走 router 分发（登录协议），并绑定返回的玩家句柄
-                local handle
-                resp_bytes, handle = rpc.dispatch(packet.protocol_name, packet.payload)
-                if handle then
-                    player_handle = handle
-                    log.info("agent bound to player: %s", skynet.address(player_handle))
-                end
+                error("authenticated read-only protocol required")
             end
             websocket.write(id, make_packet(packet.session_id, packet.protocol_name, resp_bytes), "binary")
         end)
         if not ok then
-            log.error("agent dispatch failed: %s", tostring(err))
+            log.warn("agent request rejected: protocol=%s session=%s", request_protocol_name, request_session_id)
             -- 错误也要带回请求的会话号,让客户端立刻结束对应等待。
-            websocket.write(id, make_packet(request_session_id, request_protocol_name, nil, tostring(err)), "binary")
+            -- No internal stack traces, request payloads or credentials in public errors.
+            websocket.write(id, make_packet(request_session_id, request_protocol_name, nil, "request rejected"), "binary")
         end
     end,
     close = function(id)

@@ -12,6 +12,7 @@ local PROTO_FILES = {
     "struct",
     "test",
     "player",
+    "account",
 }
 
 local proto_path = skynet.getenv("proto_path") or "scripts/game/protos/"

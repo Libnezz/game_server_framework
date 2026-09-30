@@ -14,16 +14,21 @@ local function redis_key(k)
 end
 
 local HANDLERS = {
+    -- Versioned read-only seed. Only coins currently have historical Redis persistence.
+    -- Product profile storage and mutations are a later slice.
+    PlayerProfileRequest = function()
+        return proto.encode(P .. "PlayerProfileResponse", {
+            player_id = player_id, schema_version = 1, revision = 1,
+            nickname = "Test Traveler", level = 3, exp = 25, coins = coins,
+            total_login_count = 0, last_login_unix_seconds = 0, items = {},
+        })
+    end,
     -- 玩家业务模块入口（后续按 managers 组织）
     PlayerInfoRequest = function()
         return proto.encode(P .. "PlayerInfoResponse", { player_id = player_id, coins = coins })
     end,
     AddCoinsRequest = function(payload)
-        local req = proto.decode(P .. "AddCoinsRequest", payload)
-        coins = coins + (req.amount or 0)
-        db.redis("SET", redis_key("coins"), coins) -- 写穿 Redis，演示持久化
-        log.info("player %s coins -> %d", player_id, coins)
-        return proto.encode(P .. "AddCoinsResponse", { coins = coins })
+        error("client-authored economy changes are disabled")
     end,
     logout = function()
         log.info("player %s logout, save coins=%d", player_id, coins)
