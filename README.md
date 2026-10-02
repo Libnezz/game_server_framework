@@ -2,6 +2,8 @@
 
 基于 skynet 的游戏服务器框架。
 
+当前账号/档案仍为开发只读切片。下一步非经济探索进度的写入边界、CAS与恢复验收见 [online-exploration-write-plan.md](docs/online-exploration-write-plan.md)；协议草案尚未进入运行时，经济奖励未开放。
+
 ## 目录结构
 
 | 目录 | 用途 |
