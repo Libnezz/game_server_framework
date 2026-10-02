@@ -4,10 +4,7 @@ local sharedata = require "skynet.sharedata"
 local json = require "json"
 
 -- 配置表清单：datas/ 下需要加载的表名（对应 <name>.json，随项目扩展）
-local CONFIG_FILES = {
-    "Item",
-    "Reward",
-}
+local CONFIG_FILES = require("runtime_manifest").get().config_tables
 
 -- 配置目录，可在 etc/config 中通过 config_path 覆盖
 local config_path = skynet.getenv("config_path") or "datas/"

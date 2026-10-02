@@ -1,33 +1,27 @@
 # game_server_framework
 
-基于 skynet 的游戏服务器框架。
+通用Skynet服务端底座。AnimeOpenWorld的账号会话、玩家档案、探索定义/仓库、产品协议和迁移脚本已迁到独立的 `AnimeOpenWorldServer`，本仓库不再启动产品业务。
 
-账号/人物档案保持开发只读范围；另已实现非经济探索进度的首次创建、CAS、重复与并发恢复，接口和证据见 [exploration-progress.md](docs/exploration-progress.md)。经济奖励未开放，探索声明尚不具备服务端空间行为证明。
+框架提供连接监听、协议装载、路由、配置装载、MySQL/Redis代理、带CAS的文档存储、开发凭证提供器与日志。宿主通过 `application_manifest` 指定自己的服务、完整proto路径及配置表清单；框架启动完成后启动宿主服务，最后开放监听。原生协议外壳仍为NetworkPacket，wire格式不变。
 
-## 目录结构
+`examples/echo` 是独立框架宿主，仅允许TestRequest与心跳，没有玩家、探索或经济接口。`datas` 是此示例的配置输入。默认 `etc/config` 运行此示例；产品使用自己的配置，不覆盖框架入口。框架main不执行产品读写或启动自检建表。
 
-| 目录 | 用途 |
-|---|---|
-| `etc/` | 运行配置（节点配置、服务配置、配置入口） |
-| `datas/` | 游戏数值配置表（策划数据，程序只读，支持热更） |
-| `scripts/framework/` | 运行时框架：`services/` 通用服务（configservice、protoservice、logservice），`utils/` 通用方法与接口（stringutils 等工具 + config/proto/log 服务接口），根目录（main 启动编排入口、startup 启动清单） |
-| `scripts/game/` | 业务：`modules/` 业务服务模块，`managers/` 业务管理器，`constants/` 常量，`protos/` 协议文件 |
-| `skynet/` | skynet 子模块（框架运行时） |
-| `third_party/` | 第三方依赖（源码/子模块/二进制，尽量不修改、单独升级） |
-
-进程启动层（skynet 二进制 + 配置 + 自带 bootstrap/launcher）由 skynet 承担，项目不单独做启动层；`run.sh` 只是便捷启动命令。Docker 开发环境见 [`docker/README.md`](docker/README.md)。
-
-## 快速启动
+## 本地开发
 
 ```powershell
-docker compose up -d --build
-docker compose exec dev bash -lc "cd /app && bash run.sh"
+docker --context desktop-linux compose up -d --build
+docker --context desktop-linux exec gsf-dev bash -lc 'cd /app/skynet && make linux -j4'
+docker --context desktop-linux exec gsf-dev bash -lc 'cd /app && gcc -O2 -shared -fPIC -I skynet/3rd/lua third_party/lua-protobuf/pb.c -o skynet/luaclib/pb.so'
+docker --context desktop-linux exec gsf-dev bash -lc 'cd /app && bash run.sh'
 ```
 
-看到 `framework booted` 与 `echo service responded: framework alive` 即说明框架链路正常。
+看到 `application ready; ws listening` 即为就绪。框架与产品实例不能同时占用宿主8888；独立框架验证使用容器内8889。
 
-### 启动编排
+```powershell
+docker --context desktop-linux exec gsf-dev bash scripts/tools/run_test_client.sh 127.0.0.1 8889
+docker --context desktop-linux exec gsf-dev sh -c 'cd /app && ./skynet/3rd/lua/lua scripts/tools/test_runtime_manifest.lua'
+```
 
-框架服务通过 [`scripts/framework/startup.lua`](scripts/framework/startup.lua) 清单按依赖顺序启动（支持性服务 → 基础通用服务 → 业务服务）；数值配置表放在 `datas/`，由 `configservice` 服务加载进只读共享数据，支持热更。数据库由 `redisservice` / `mysqlservice` 代理（skynet 纯 Lua 客户端），业务侧通过 [`scripts/framework/utils/db.lua`](scripts/framework/utils/db.lua) 访问。网络链路为 `watchdog`（WebSocket 监听，框架层）→ `agent`（每连接会话，game 层）→ `router`（协议路由）→ 业务模块（RPC 分发）；消息统一用 `NetworkPacket`（protobuf）包装，测试客户端见 [`scripts/tools/run_test_client.sh`](scripts/tools/run_test_client.sh)（先启动服务端再运行）。
+2026-10-02拆分验证：宿主清单8项、开发凭证提供器10项、独立Echo进程真实WebSocket/关联响应/心跳通过。产品回归见AnimeOpenWorldServer文档。此前docs中的账号/档案/探索记录为拆分前历史；后续产品维护以新工程为准。
 
-协议文件（protobuf）放在 `scripts/game/protos/`，由 `protoservice` 服务统一加载校验（lua-protobuf 解析，schema 按服务 VM 独立持有）；日志由 `logservice` 统一输出时间戳，业务侧用 `log` 工具（级别过滤）。
+框架不反向依赖产品。产品通过Git子模块固定框架提交；更新依赖后运行纯逻辑、真实数据库、实连接与Unity回归。现有开发数据库卷和skynet既存工作区改动保留，不随本次提取清理。

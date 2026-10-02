@@ -14,9 +14,11 @@ skynet.start(function()
 
     -- 自检：TestRequest encode/decode 往返
     local ok2, msg = pcall(function()
-        local bytes = proto.encode("TestRequest", { message = "framework alive" })
-        local obj = proto.decode("TestRequest", bytes)
-        return obj.message
+        local kind = "Game.Framework.Network.NetworkPacket"
+        local bytes = proto.encode(kind, { session_id = 7, protocol_name = "Heartbeat" })
+        local obj = proto.decode(kind, bytes)
+        assert(obj.session_id == 7 and obj.protocol_name == "Heartbeat")
+        return "transport envelope"
     end)
     if ok2 then
         skynet.error(string.format("protoservice: self-check ok, roundtrip = %q", tostring(msg)))

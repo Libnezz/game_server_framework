@@ -1,4 +1,4 @@
--- 框架协议加载库：解析 scripts/game/protos/ 下的 .proto 文件到 lua-protobuf
+-- Generic schema loader: paths come from the host application manifest.
 -- 注意：lua-protobuf 的 schema 是每个服务 Lua VM 独立持有的，
 -- 所以每个需要使用协议的服务，都要 require 本模块并调用 load_all()（幂等，通常启动时执行一次）。
 -- 消息类型名需用完整名：带 package 的协议用 "包名.消息名"，如 "Game.Framework.Network.NetworkPacket"
@@ -6,17 +6,8 @@ local skynet = require "skynet"
 local pb = require "pb"
 local protoc = require "protoc"
 
--- 协议文件清单：scripts/game/protos/ 下需要加载的 .proto（随项目扩展）
-local PROTO_FILES = {
-    "networkpacket",
-    "struct",
-    "test",
-    "player",
-    "account",
-    "exploration",
-}
-
-local proto_path = skynet.getenv("proto_path") or "scripts/game/protos/"
+-- Full paths allow the host to combine framework and product protocols.
+local PROTO_FILES = require("runtime_manifest").get().protocols
 local loaded = false
 
 local M = {}
@@ -28,7 +19,7 @@ function M.load_all()
     end
     local parser = protoc.new()
     for _, name in ipairs(PROTO_FILES) do
-        local path = proto_path .. name .. ".proto"
+        local path = name
         local ok, err = pcall(parser.loadfile, parser, path)
         if not ok then
             error(string.format("proto load failed: %s (%s)", path, tostring(err)))

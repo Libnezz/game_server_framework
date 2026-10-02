@@ -3,4 +3,4 @@
 # 说明：skynet 的 client.so 演示库会在 require 时启动一个读 stdin 的后台线程，
 # stdin 一旦 EOF 就会 exit(1) 杀掉进程，所以用 sleep 管道让 stdin 保持打开。
 cd "$(dirname "$0")/../.."
-timeout 12 ./skynet/3rd/lua/lua scripts/tools/test_client.lua "$@" < <(sleep 15)
+timeout 12 ./skynet/3rd/lua/lua scripts/tools/echo_client.lua "$@" < <(sleep 15)

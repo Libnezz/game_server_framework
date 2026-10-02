@@ -9,9 +9,9 @@ logpath = "."
 start = "main"      -- 框架启动入口服务
 bootstrap = "snlua bootstrap"
 config_path = "datas/"              -- 数值配置表目录（configservice 服务读取）
-proto_path = "scripts/game/protos/" -- 协议文件目录（protoservice 服务读取）
+application_manifest = "example_manifest" -- The host owns schemas, tables and business startup.
 ws_port = 8888                      -- WebSocket 接入端口（watchdog 读取）
-agent_service = "agent"             -- 每个连接创建的会话服务名（game 层实现）
+agent_service = "example_agent"     -- Echo demonstration; no product authentication.
 
 -- 数据库配置（host 用 docker compose 服务名，容器内可直接解析）
 redis_host = "redis"                -- Redis 地址
