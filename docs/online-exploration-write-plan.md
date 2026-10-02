@@ -1,5 +1,7 @@
 # 首次探索进度写入：实施边界
 
+2026-10-02 后续：服务端实现和验证已完成，实际接口与证据见 [exploration-progress.md](exploration-progress.md)。下文保留实施前草案；运行协议以 `scripts/game/protos/exploration.proto` 为准，docs/contracts文件不参与加载。
+
 2026-10-02，状态：需求/协议草案，尚未实现或开放。产品完整需求、完成校验、奖励准入与验收矩阵统一维护在 [OnlineExplorationWriteRequirements.md](https://github.com/Libnezz/AnimeOpenWorld/blob/main/Docs/OnlineExplorationWriteRequirements.md)，本仓库保留服务端落点和可编译契约。
 
 ## 先做什么

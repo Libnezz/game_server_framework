@@ -16,8 +16,22 @@ local profiles = profile_module.new(store, function(id)
     local legacy_coins = db.redis("GET", "player:" .. id .. ":coins")
     return profile_module.seed(id, tonumber(legacy_coins or "0"))
 end)
+local X = "AnimeOpenWorld.Exploration.V1."
+local exploration = require("player_exploration_repository").new(require("mysql_document_store").new({
+    query = db.mysql_query, execute = db.mysql_execute, quote = db.mysql_quote,
+    insert_if_absent = db.mysql_insert_if_absent,
+}, "player_exploration"))
 
 local HANDLERS = {
+    ExplorationStateRequest = function(payload)
+        local req = proto.decode(X .. "ExplorationStateRequest", payload)
+        return proto.encode(X .. "ExplorationStateResponse", exploration.read(player_id, req.goal_id, req.definition_version))
+    end,
+    RecordExplorationPointRequest = function(payload)
+        local req = proto.decode(X .. "RecordExplorationPointRequest", payload)
+        return proto.encode(X .. "RecordExplorationPointResponse", exploration.record(player_id,
+            req.goal_id, req.definition_version, req.point_id, req.expected_revision or 0))
+    end,
     PlayerProfileRequest = function()
         return proto.encode(P .. "PlayerProfileResponse", profiles.read(player_id))
     end,

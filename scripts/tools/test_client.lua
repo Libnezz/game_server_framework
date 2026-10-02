@@ -14,6 +14,8 @@ parser:loadfile("scripts/game/protos/networkpacket.proto")
 parser:loadfile("scripts/game/protos/test.proto")
 parser:loadfile("scripts/game/protos/player.proto")
 parser:loadfile("scripts/game/protos/account.proto")
+parser:loadfile("scripts/game/protos/exploration.proto")
+pb.option("enum_as_value")
 protoc.reload()
 
 local host = arg[1] or "127.0.0.1"
@@ -168,7 +170,14 @@ end
 local function rejected(action)
     assert(not pcall(action), "operation must be rejected")
 end
+local X = "AnimeOpenWorld.Exploration.V1."
+local function exploration()
+    return rpc_call("ExplorationStateRequest", X .. "ExplorationStateRequest", {goal_id=1,definition_version=1}, X .. "ExplorationStateResponse")
+end
 rejected(profile)
+rejected(exploration)
+rejected(function() rpc_call("RecordExplorationPointRequest", X .. "RecordExplorationPointRequest",
+    {goal_id=1,definition_version=1,point_id=3001,expected_revision=0}, X .. "RecordExplorationPointResponse") end)
 rejected(function() rpc_call("LoginRequest", P .. "LoginRequest", { player_id = "99999" }, P .. "LoginResponse") end)
 rejected(function() authenticate(account, "invalid-token") end)
 rejected(profile)
@@ -180,6 +189,31 @@ rejected(function() rpc_call("AddCoinsRequest", P .. "AddCoinsRequest", { amount
 rejected(function() rpc_call("logout", P .. "LoginRequest", {}, P .. "LoginResponse") end)
 assert(profile().coins == info.coins, "rejected economy operation changed balance")
 io.write("authenticated server identity and versioned read-only profile ok\n")
+
+if arg[3] == "exploration" then
+    local before = pb.encode(P .. "PlayerProfileResponse", info)
+    local current = exploration()
+    local function record(point, revision, version)
+        return rpc_call("RecordExplorationPointRequest", X .. "RecordExplorationPointRequest",
+            {goal_id=1,definition_version=version or 1,point_id=point,expected_revision=revision}, X .. "RecordExplorationPointResponse")
+    end
+    authenticate(other); local other_before = pb.encode(X .. "ExplorationStateResponse", exploration()); authenticate(account)
+    rejected(function() record(99,current.revision) end)
+    rejected(function() record(3001,current.revision,2) end)
+    for _, point in ipairs({3002,3001}) do
+        local reply = record(point, current.revision)
+        assert(reply.result == 1 or reply.result == 2)
+        current = reply.state
+        local duplicate = record(point,0)
+        assert(duplicate.result == 2 and duplicate.state.revision == current.revision)
+    end
+    assert(current.phase == 3 and #current.completed_point_ids == 2)
+    assert(pb.encode(P .. "PlayerProfileResponse",profile()) == before, "exploration changed profile")
+    authenticate(other); assert(pb.encode(X .. "ExplorationStateResponse",exploration()) == other_before)
+    authenticate(account); assert(exploration().revision == current.revision)
+    socket.close(fd); io.write("EXPLORATION_NETWORK_PASS revision=",current.revision," profile unchanged; account isolation ok\n")
+    return
+end
 
 -- 可选的独立重启检查:本模式只登录和查询,不修改数据。
 if arg[3] == "verify" then

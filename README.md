@@ -2,7 +2,7 @@
 
 基于 skynet 的游戏服务器框架。
 
-当前账号/档案仍为开发只读切片。下一步非经济探索进度的写入边界、CAS与恢复验收见 [online-exploration-write-plan.md](docs/online-exploration-write-plan.md)；协议草案尚未进入运行时，经济奖励未开放。
+账号/人物档案保持开发只读范围；另已实现非经济探索进度的首次创建、CAS、重复与并发恢复，接口和证据见 [exploration-progress.md](docs/exploration-progress.md)。经济奖励未开放，探索声明尚不具备服务端空间行为证明。
 
 ## 目录结构
 

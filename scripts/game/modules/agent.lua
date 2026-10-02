@@ -53,11 +53,12 @@ local handle = {
                 resp_bytes, handle = rpc.dispatch(packet.protocol_name, packet.payload)
                 assert(handle, "authentication failed")
                 player_handle = handle
-            elseif player_handle and (request_protocol_name == "PlayerProfileRequest" or request_protocol_name == "PlayerInfoRequest") then
+            elseif player_handle and (request_protocol_name == "PlayerProfileRequest" or request_protocol_name == "PlayerInfoRequest"
+                or request_protocol_name == "ExplorationStateRequest" or request_protocol_name == "RecordExplorationPointRequest") then
                 -- 已登录：业务协议直接转发给玩家实体
                 resp_bytes = skynet.call(player_handle, "lua", packet.protocol_name, packet.payload)
             else
-                error("authenticated read-only protocol required")
+                error("authenticated allowed protocol required")
             end
             websocket.write(id, make_packet(packet.session_id, packet.protocol_name, resp_bytes), "binary")
         end)

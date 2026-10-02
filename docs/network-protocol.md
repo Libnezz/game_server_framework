@@ -1,6 +1,6 @@
 # WebSocket NetworkPacket 约定
 
-2026-10-02 设计更新：非经济探索进度的首次写入需求和协议草案见 [online-exploration-write-plan.md](online-exploration-write-plan.md)。草案不在运行时协议目录，未加入agent白名单；下方路由仍为当前只读实现，尚无探索写入或奖励结算。
+2026-10-02 实现更新：非经济探索进度的两个已认证协议已加入运行时，独立MySQL文档、首次创建/CAS、重复点幂等、并发与重启恢复已验证，见 [exploration-progress.md](exploration-progress.md)。设计原稿见 [online-exploration-write-plan.md](online-exploration-write-plan.md)。人物档案/钱包仍只读，没有经济奖励；空间行为仍由开发客户端声明。
 
 2026-09-30 后续状态：完整 PlayerProfileResponse 已由 MySQL `player_profiles` 文档持久化并校验读取；开发种子仅在首次建档使用。新 Skynet 进程和 MySQL 容器重启恢复均通过。详见 [player-profile-storage.md](player-profile-storage.md) 和产品 `Docs/ServerProfilePersistence.md`；下文关于只持久化金币的描述保留为最初切片的历史范围。
 
@@ -21,6 +21,8 @@
 | `AuthenticateRequest` | `AuthenticateResponse` | playermgr，经本地开发身份提供器认证后返回服务端映射 ID |
 | `PlayerProfileRequest` | `PlayerProfileResponse` | 当前连接已绑定的 player，版本化只读快照 |
 | `PlayerInfoRequest` | `PlayerInfoResponse` | 已认证 player，兼容只读金币查询 |
+| `ExplorationStateRequest` | `ExplorationStateResponse` | 已认证player，探索快照；无行时revision0 |
+| `RecordExplorationPointRequest` | `RecordExplorationPointResponse` | 已认证player，非经济点记录；新增/已记录/版本冲突 |
 | `LoginRequest` / `AddCoinsRequest` | 关联错误包 | 始终拒绝，不再支持固定 player_id 与客户端经济增量 |
 | `TestRequest` | 无公开客户端入口 | 例子服务保留，agent 仅允许认证后玩家协议 |
 

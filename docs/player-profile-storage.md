@@ -12,6 +12,8 @@
 
 2026-10-02 首次写入规划：探索进度拟放在独立 `player_exploration` 文档，人物档案继续只读，schema/revision不随调查改变。进度的条件更新、并发和结果不确定后的恢复尚待实现；需求和奖励准入见 [online-exploration-write-plan.md](online-exploration-write-plan.md)。这份规划尚未改变数据库或开放协议。
 
+同日实现更新：独立探索文档、条件更新和两个窄协议已实现，并发/重复/新进程及MySQL重启恢复通过，见 [exploration-progress.md](exploration-progress.md)。人物档案读写范围未扩大，原档案仓库与真实存储回归通过。
+
 ## 迁移
 
 在仓库根目录执行（现有和新数据库均显式应用）：

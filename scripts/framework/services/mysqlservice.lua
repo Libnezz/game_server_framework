@@ -38,6 +38,13 @@ function CMD.execute(sql)
     return res
 end
 
+function CMD.insert_if_absent(sql)
+    local res = db:query(sql)
+    if res and res.badresult and res.errno == 1062 then return { affected_rows = 0 } end
+    if not res or res.badresult then error("mysql insert failed (errno=" .. tostring(res and res.errno) .. ")") end
+    return res
+end
+
 -- 字符串转义（拼接 SQL 时使用）
 function CMD.quote(str)
     return mysql.quote_sql_str(str)

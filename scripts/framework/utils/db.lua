@@ -18,6 +18,10 @@ function M.mysql_execute(sql)
     return skynet.call(".mysqlservice", "lua", "execute", sql)
 end
 
+function M.mysql_insert_if_absent(sql)
+    return skynet.call(".mysqlservice", "lua", "insert_if_absent", sql)
+end
+
 function M.mysql_quote(value)
     return skynet.call(".mysqlservice", "lua", "quote", value)
 end
