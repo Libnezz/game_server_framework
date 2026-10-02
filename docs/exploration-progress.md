@@ -22,4 +22,6 @@
 
 复现入口：`scripts/tools/test_player_exploration.lua`、`run_exploration_storage_test.sh`、`run_test_client.sh 127.0.0.1 8888 exploration`。最后一个入口会推进第一个预置开发账号的非经济进度并保留它；不改人物档案，不清除该账号数据。
 
-Unity确认/恢复与地标表现由后续产品阶段验证，本轮不把Lua结果当作客户端通过。没有经济事务、权威位置/调查模拟、移动端或长期压力验证；skynet既存工作区改动未处理。
+后续产品阶段现已完成：在线确认/恢复提交 `301eea3`，真实Skynet/MySQL PlayMode验证提交前取消、未确认不计数、重登1/2、取消客户端等待后查询2/2、连接关闭清理/重登2/2、两账号隔离及档案不变；地标表现加入不同轮廓/颜色、世界名称牌、进度环与确认脉冲。产品最终EditMode192/192，整套宿主PlayMode36通过/0失败/3既有跳过，布局调整后产品5/5复验通过。见 [在线探索接入](https://github.com/Libnezz/AnimeOpenWorld/blob/main/Docs/OnlineExplorationProgress.md) 与 [地标表现](https://github.com/Libnezz/AnimeOpenWorld/blob/main/Docs/ExplorationPresentation.md)。临时账号/数据库行独立于既有开发身份，验证后恢复原凭证与Skynet配置。
+
+客户端取消等待验证不等同物理丢包注入。没有经济事务、权威位置/调查模拟、新IL2CPP/热更包、移动端或长期压力验证；skynet既存工作区改动未处理。
