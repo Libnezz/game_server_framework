@@ -1,5 +1,7 @@
 # WebSocket NetworkPacket 约定
 
+2026-10-03 拆分更新：当前通用外壳位于 `scripts/framework/protos/networkpacket.proto`，独立框架示例仅提供TestRequest/心跳。本文产品路由与早期业务路径是拆分前证据；产品维护与当前启动见 [anime_open_world_server 协议](https://github.com/Libnezz/anime_open_world_server/blob/main/docs/network-protocol.md) 及其README。
+
 2026-10-02 实现更新：非经济探索进度的两个已认证协议已加入运行时，独立MySQL文档、首次创建/CAS、重复点幂等、并发与重启恢复已验证，见 [exploration-progress.md](exploration-progress.md)。设计原稿见 [online-exploration-write-plan.md](online-exploration-write-plan.md)。人物档案/钱包仍只读，没有经济奖励；空间行为仍由开发客户端声明。
 
 2026-09-30 后续状态：完整 PlayerProfileResponse 已由 MySQL `player_profiles` 文档持久化并校验读取；开发种子仅在首次建档使用。新 Skynet 进程和 MySQL 容器重启恢复均通过。详见 [player-profile-storage.md](player-profile-storage.md) 和产品 `Docs/ServerProfilePersistence.md`；下文关于只持久化金币的描述保留为最初切片的历史范围。

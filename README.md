@@ -1,6 +1,6 @@
 # game_server_framework
 
-通用Skynet服务端底座。AnimeOpenWorld的账号会话、玩家档案、探索定义/仓库、产品协议和迁移脚本已迁到独立的 `AnimeOpenWorldServer`，本仓库不再启动产品业务。
+通用Skynet服务端底座。AnimeOpenWorld的账号会话、玩家档案、探索定义/仓库、产品协议和迁移脚本已迁到独立的 [anime_open_world_server](https://github.com/Libnezz/anime_open_world_server)，本仓库不再启动产品业务。服务端仓库与目录沿用小写下划线命名，产品的框架子模块目录为 `framework`。
 
 框架提供连接监听、协议装载、路由、配置装载、MySQL/Redis代理、带CAS的文档存储、开发凭证提供器与日志。宿主通过 `application_manifest` 指定自己的服务、完整proto路径及配置表清单；框架启动完成后启动宿主服务，最后开放监听。原生协议外壳仍为NetworkPacket，wire格式不变。
 
@@ -22,6 +22,6 @@ docker --context desktop-linux exec gsf-dev bash scripts/tools/run_test_client.s
 docker --context desktop-linux exec gsf-dev sh -c 'cd /app && ./skynet/3rd/lua/lua scripts/tools/test_runtime_manifest.lua'
 ```
 
-2026-10-02拆分验证：宿主清单8项、开发凭证提供器10项、独立Echo进程真实WebSocket/关联响应/心跳通过。产品回归见AnimeOpenWorldServer文档。此前docs中的账号/档案/探索记录为拆分前历史；后续产品维护以新工程为准。
+2026-10-02拆分验证：宿主清单8项、开发凭证提供器10项、独立Echo进程真实WebSocket/关联响应/心跳通过。产品回归见anime_open_world_server文档。此前docs中的账号/档案/探索记录为拆分前历史；后续产品维护以新工程为准。
 
 框架不反向依赖产品。产品通过Git子模块固定框架提交；更新依赖后运行纯逻辑、真实数据库、实连接与Unity回归。现有开发数据库卷和skynet既存工作区改动保留，不随本次提取清理。
